@@ -49,7 +49,7 @@
   }
 
   body {
-    padding: env(safe-area-inset-top) 16px calc(48px + env(safe-area-inset-bottom));
+    padding: env(safe-area-inset-top) 16px calc(96px + env(safe-area-inset-bottom));
     max-width: 720px;
     margin: 0 auto;
     -webkit-tap-highlight-color: transparent;
@@ -299,6 +299,78 @@
   .ok { color: var(--accent); }
   .warn { color: var(--fail); }
 
+  /* ---------- oefeningen ---------- */
+  .ex {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .ex-check {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    padding: 8px;
+    margin-left: -8px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .ex-check:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+  .ex-check[aria-pressed="true"] .box { background: var(--accent); border-color: var(--accent); }
+  .ex-check[aria-pressed="true"] .box svg { opacity: 1; transform: scale(1); }
+
+  .ex-body { flex: 1; min-width: 0; }
+  .ex-name { display: block; font-size: 15px; }
+  .ex.done .ex-name { color: var(--muted); text-decoration: line-through; text-decoration-color: #3a414d; }
+
+  input.kg {
+    flex: 0 0 78px;
+    width: 78px;
+    min-height: 40px;
+    padding: 0 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 15px;
+    text-align: center;
+  }
+
+  /* ---------- rusttimer ---------- */
+  #timer {
+    position: fixed;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 20;
+    display: flex;
+    gap: 6px;
+  }
+  #timer .pill {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 999px;
+    min-height: 44px;
+    padding: 0 16px;
+    font-family: var(--mono);
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+  #timer .pill.sug { border-color: var(--accent); color: var(--accent); }
+  #timer .pill.ghost { padding: 0 14px; color: var(--muted); }
+  #timer.running .pill { background: var(--accent); color: #08282e; border-color: var(--accent); font-weight: 600; }
+  #timer.ding .pill { animation: ding 0.4s var(--ease) 3; }
+
+  @keyframes ding {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
   @media (max-width: 400px) {
     .board { gap: 3px; }
     .daycount { font-size: 44px; }
@@ -353,6 +425,96 @@
   ];
 
   var GROUPS = ["Training", "Voeding", "Groei", "Herstel", "Discipline"];
+
+  /* Programma per weekdag, 0 is zondag. compound bepaalt de standaard rusttijd. */
+  var PROGRAM = {
+    1: {
+      title: "Kracht onderlichaam",
+      exercises: [
+        { id: "mon-squat",    name: "Back Squat",            scheme: "5 x 5",        compound: true },
+        { id: "mon-rdl",      name: "Romanian Deadlift",     scheme: "4 x 8",        compound: true },
+        { id: "mon-bss",      name: "Bulgarian Split Squat", scheme: "3 x 10 per been" },
+        { id: "mon-legpress", name: "Leg Press",             scheme: "3 x 12" },
+        { id: "mon-calf",     name: "Standing Calf Raise",   scheme: "4 x 15" },
+        { id: "mon-hlr",      name: "Hanging Leg Raise",     scheme: "3 x 12" },
+        { id: "mon-plank",    name: "Plank",                 scheme: "3 x 60 sec" }
+      ]
+    },
+    2: {
+      title: "Kracht bovenlichaam",
+      exercises: [
+        { id: "tue-bench",  name: "Bench Press",                   scheme: "5 x 5",         compound: true },
+        { id: "tue-pullup", name: "Weighted Pull-up of Lat Pulldown", scheme: "4 x 6 tot 8", compound: true },
+        { id: "tue-row",    name: "Barbell Row",                   scheme: "4 x 8",         compound: true },
+        { id: "tue-ohp",    name: "Overhead Press",                scheme: "4 x 8",         compound: true },
+        { id: "tue-face",   name: "Face Pull",                     scheme: "3 x 15" },
+        { id: "tue-farmer", name: "Farmer Carry",                  scheme: "4 x 30 tot 40 m" }
+      ]
+    },
+    3: {
+      title: "Benen, power en explosiviteit",
+      exercises: [
+        { id: "wed-trapbar", name: "Trap Bar Deadlift",   scheme: "5 x 3",  compound: true },
+        { id: "wed-front",   name: "Front Squat",         scheme: "4 x 6",  compound: true },
+        { id: "wed-hip",     name: "Hip Thrust",          scheme: "4 x 8",  compound: true },
+        { id: "wed-box",     name: "Box Jump",            scheme: "4 x 5" },
+        { id: "wed-skater",  name: "Skater Bound",        scheme: "3 x 10" },
+        { id: "wed-nordic",  name: "Nordic Hamstring Curl", scheme: "3 x 6" },
+        { id: "wed-chop",    name: "Cable Woodchopper",   scheme: "3 x 12" }
+      ]
+    },
+    4: {
+      title: "Bovenlichaam hypertrofie",
+      exercises: [
+        { id: "thu-incline", name: "Incline Dumbbell Press", scheme: "4 x 10", compound: true },
+        { id: "thu-csrow",   name: "Chest Supported Row",    scheme: "4 x 10" },
+        { id: "thu-lat",     name: "Lat Pulldown",           scheme: "3 x 12" },
+        { id: "thu-dips",    name: "Dips",                   scheme: "3 x 10 tot 12" },
+        { id: "thu-lateral", name: "Dumbbell Lateral Raise", scheme: "4 x 15" },
+        { id: "thu-reardelt",name: "Rear Delt Fly",          scheme: "3 x 15" },
+        { id: "thu-hammer",  name: "Hammer Curl",            scheme: "3 x 12" },
+        { id: "thu-rope",    name: "Rope Tricep Pushdown",   scheme: "3 x 12" }
+      ]
+    },
+    5: {
+      title: "Full body athletic",
+      exercises: [
+        { id: "fri-clean",  name: "Power Clean of Kettlebell Swing", scheme: "4 x 5", compound: true },
+        { id: "fri-lunge",  name: "Walking Lunge",                   scheme: "3 x 12 per been" },
+        { id: "fri-pullup", name: "Pull-up",                         scheme: "3 x max" },
+        { id: "fri-push",   name: "Push Press",                      scheme: "4 x 6", compound: true },
+        { id: "fri-sled",   name: "Sled Push",                       scheme: "6 x 20 m" },
+        { id: "fri-ropes",  name: "Battle Ropes",                    scheme: "8 x 20 sec" },
+        { id: "fri-abwheel",name: "Ab Wheel Rollout",                scheme: "3 x 12" }
+      ]
+    },
+    6: {
+      title: "Zwakke punten en conditie",
+      note: "Kies zelf wat je aanpakt. Sluit af met 20 minuten StairMaster, fiets of roeimachine.",
+      optional: true,
+      exercises: [
+        { id: "sat-lateral",  name: "Lateral Raise",        scheme: "4 x 15", part: "Schouders" },
+        { id: "sat-reardelt", name: "Rear Delt Fly",        scheme: "4 x 15", part: "Schouders" },
+        { id: "sat-curl",     name: "Barbell Curl",         scheme: "3 x 12", part: "Armen" },
+        { id: "sat-skull",    name: "Skull Crusher",        scheme: "3 x 12", part: "Armen" },
+        { id: "sat-hammer",   name: "Hammer Curl",          scheme: "3 x 12", part: "Armen" },
+        { id: "sat-incline",  name: "Incline Machine Press",scheme: "3 x 12", part: "Borst" },
+        { id: "sat-fly",      name: "Cable Fly",            scheme: "3 x 15", part: "Borst" },
+        { id: "sat-row",      name: "Seated Cable Row",     scheme: "3 x 12", part: "Rug" },
+        { id: "sat-sapd",     name: "Straight Arm Pulldown",scheme: "3 x 15", part: "Rug" },
+        { id: "sat-cardio",   name: "StairMaster, fiets of roeien", scheme: "20 min", part: "Afsluiter" }
+      ]
+    },
+    0: {
+      title: "Herstel",
+      recovery: [
+        "45 tot 60 minuten wandelen",
+        "15 tot 20 minuten mobility en stretchen",
+        "Foam rollen",
+        "Lichte core, optioneel"
+      ]
+    }
+  };
 
   /* ============================================================
    * Opslag: localStorage, met geheugen als fallback
@@ -446,7 +608,25 @@
   function dayRecord(k) {
     if (!state.days[k]) state.days[k] = { habits: {} };
     if (!state.days[k].habits) state.days[k].habits = {};
+    if (!state.days[k].workout) state.days[k].workout = {};
     return state.days[k];
+  }
+
+  function workoutFor(d) {
+    var rec = state.days[key(d)];
+    return (rec && rec.workout) || {};
+  }
+
+  /* Laatst gebruikte gewicht voor een oefening, kijkend naar eerdere dagen */
+  function lastWeight(exId, beforeKey) {
+    var keys = Object.keys(state.days).filter(function (k) { return k < beforeKey; }).sort().reverse();
+    for (var i = 0; i < keys.length; i++) {
+      var w = state.days[keys[i]].workout;
+      if (w && w[exId] && typeof w[exId].kg === "number") {
+        return { kg: w[exId].kg, date: keys[i] };
+      }
+    }
+    return null;
   }
 
   function requiredHabits(d) {
@@ -546,6 +726,7 @@
     app.innerHTML =
       renderHeader(s) +
       renderDay(s, isToday) +
+      renderTraining() +
       renderStats(s) +
       renderBoard() +
       renderTrend() +
@@ -625,6 +806,69 @@
 
   function stat(v, k, accent) {
     return '<div class="stat"><span class="v' + (accent ? " accent" : "") + '">' + esc(v) + '</span><span class="k">' + esc(k) + "</span></div>";
+  }
+
+  function renderTraining() {
+    var prog = PROGRAM[viewDate.getDay()];
+    if (!prog) return "";
+
+    var vKey = key(viewDate);
+
+    if (prog.recovery) {
+      var items = prog.recovery.map(function (t) {
+        return '<div class="rate"><span class="name">' + esc(t) + "</span></div>";
+      }).join("");
+      return "<section>" +
+        '<div class="sec-head"><h2 style="font-size:17px">Training</h2><span class="eyebrow">' + esc(prog.title) + "</span></div>" +
+        items +
+        '<p class="empty">Geen gym vandaag. Wandelen en mobility staan al in je habits.</p>' +
+      "</section>";
+    }
+
+    var w = workoutFor(viewDate);
+    var done = prog.exercises.filter(function (e) { return w[e.id] && w[e.id].done; }).length;
+    var total = prog.exercises.length;
+    var pct = total ? Math.round((done / total) * 100) : 0;
+
+    var rows = "";
+    var lastPart = null;
+
+    prog.exercises.forEach(function (e) {
+      if (e.part && e.part !== lastPart) {
+        rows += '<div class="group" style="margin-top:18px"><span class="eyebrow">' + esc(e.part) + "</span></div>";
+        lastPart = e.part;
+      }
+
+      var entry = w[e.id] || {};
+      var on = !!entry.done;
+      var prev = lastWeight(e.id, vKey);
+      var prevTxt = prev ? "vorige keer " + nl(prev.kg) + " kg" : "nog geen gewicht gelogd";
+
+      rows += '<div class="ex' + (on ? " done" : "") + '">' +
+        '<button class="ex-check" data-ex="' + e.id + '" aria-pressed="' + on + '" aria-label="' + esc(e.name) + ' afvinken">' +
+          '<span class="box">' + CHECK + "</span>" +
+        "</button>" +
+        '<div class="ex-body">' +
+          '<span class="ex-name">' + esc(e.name) + "</span>" +
+          '<span class="hint">' + esc(e.scheme) + " &middot; " + esc(prevTxt) + "</span>" +
+        "</div>" +
+        '<input class="kg" type="number" inputmode="decimal" step="0.5" min="0" max="500" placeholder="kg" ' +
+          'value="' + (typeof entry.kg === "number" ? entry.kg : "") + '" data-kg="' + e.id + '" aria-label="Gewicht voor ' + esc(e.name) + '">' +
+      "</div>";
+    });
+
+    return "<section>" +
+      '<div class="sec-head">' +
+        '<h2 style="font-size:17px">Training</h2>' +
+        '<span class="eyebrow">' + esc(prog.title) + "</span>" +
+      "</div>" +
+      '<div class="meter"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="meter-label"><span><b>' + done + "</b> van " + total + " oefeningen</span><span>" + pct + "%</span></div>" +
+      (prog.note ? '<p class="empty">' + esc(prog.note) + "</p>" : "") +
+      rows +
+      '<p class="empty" style="margin-top:18px">Rust 2 tot 3 minuten op compounds, 60 tot 90 seconden op accessoires. ' +
+      "Ga 2,5 tot 5 kg omhoog zodra alle sets schoon zijn. Houd 1 tot 2 reps in reserve.</p>" +
+    "</section>";
   }
 
   function renderStats(s) {
@@ -805,6 +1049,42 @@
    * Events
    * ========================================================== */
   function bind() {
+    app.querySelectorAll("[data-ex]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.dataset.ex;
+        var rec = dayRecord(key(viewDate));
+        if (!rec.workout[id]) rec.workout[id] = {};
+        rec.workout[id].done = !rec.workout[id].done;
+        if (!rec.workout[id].done && typeof rec.workout[id].kg !== "number") delete rec.workout[id];
+
+        // Gym habit vult zichzelf zodra alle oefeningen van vandaag staan.
+        // Afvinken van een oefening zet hem niet terug, dat doe je zelf.
+        var prog = PROGRAM[viewDate.getDay()];
+        if (prog && prog.exercises && !prog.optional) {
+          var all = prog.exercises.every(function (e) {
+            return rec.workout[e.id] && rec.workout[e.id].done;
+          });
+          if (all) rec.habits.gym = true;
+        }
+
+        save();
+        render();
+        restTimer.suggest(id);
+      });
+    });
+
+    app.querySelectorAll("[data-kg]").forEach(function (input) {
+      input.addEventListener("change", function () {
+        var id = input.dataset.kg;
+        var rec = dayRecord(key(viewDate));
+        var v = parseFloat(input.value.replace(",", "."));
+        if (!rec.workout[id]) rec.workout[id] = {};
+        if (isNaN(v)) delete rec.workout[id].kg;
+        else rec.workout[id].kg = Math.round(v * 2) / 2; // op halve kilo's
+        save();
+      });
+    });
+
     app.querySelectorAll("[data-habit]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var rec = dayRecord(key(viewDate));
@@ -977,6 +1257,87 @@
       openSetup();
     });
   }
+
+  /* ============================================================
+   * Rusttimer, leeft buiten de re-render zodat hij blijft lopen
+   * ========================================================== */
+  var restTimer = (function () {
+    var el = document.createElement("div");
+    el.id = "timer";
+    document.body.appendChild(el);
+
+    var DURATIONS = [90, 150, 180];
+    var suggested = 90;
+    var remaining = 0;
+    var handle = null;
+    var open = false;
+
+    function fmt(s) {
+      var m = Math.floor(s / 60);
+      return m + ":" + String(s % 60).padStart(2, "0");
+    }
+
+    function paint() {
+      if (handle) {
+        el.className = "running";
+        el.innerHTML = '<button class="pill" data-t="stop">' + fmt(remaining) + " &middot; stop</button>";
+      } else if (open) {
+        el.className = "open";
+        el.innerHTML = DURATIONS.map(function (d) {
+          return '<button class="pill' + (d === suggested ? " sug" : "") + '" data-t="' + d + '">' + fmt(d) + "</button>";
+        }).join("") + '<button class="pill ghost" data-t="close">&times;</button>';
+      } else {
+        el.className = "";
+        el.innerHTML = '<button class="pill" data-t="open">Rust</button>';
+      }
+
+      el.querySelectorAll("[data-t]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var v = b.dataset.t;
+          if (v === "open") { open = true; }
+          else if (v === "close") { open = false; }
+          else if (v === "stop") { stop(); }
+          else { start(parseInt(v, 10)); }
+          paint();
+        });
+      });
+    }
+
+    function tick() {
+      remaining--;
+      if (remaining <= 0) {
+        stop();
+        if (navigator.vibrate) navigator.vibrate([180, 90, 180]);
+        el.classList.add("ding");
+        setTimeout(function () { el.classList.remove("ding"); }, 1200);
+      }
+      paint();
+    }
+
+    function start(sec) {
+      stop();
+      remaining = sec;
+      open = false;
+      handle = setInterval(tick, 1000);
+    }
+
+    function stop() {
+      if (handle) clearInterval(handle);
+      handle = null;
+      remaining = 0;
+    }
+
+    paint();
+
+    return {
+      suggest: function (exId) {
+        var prog = PROGRAM[viewDate.getDay()];
+        if (!prog || !prog.exercises) return;
+        var ex = prog.exercises.filter(function (e) { return e.id === exId; })[0];
+        suggested = ex && ex.compound ? 150 : 90;
+      }
+    };
+  })();
 
   /* ============================================================
    * Boot
