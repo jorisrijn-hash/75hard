@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>75 Dagen Challenge</title>
+
+<meta name="theme-color" content="#0b0d10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="75 Dagen">
+
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+
+<style>
+  :root {
+    --bg: #0b0d10;
+    --surface: #14171c;
+    --surface-2: #1b1f26;
+    --line: #262b33;
+    --ink: #e9edf2;
+    --muted: #8b94a3;
+    --accent: #5ad1e6;
+    --accent-dim: #1f4d58;
+    --fail: #e5484d;
+
+    --z-sheet: 30;
+
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    padding: env(safe-area-inset-top) 16px calc(48px + env(safe-area-inset-bottom));
+    max-width: 720px;
+    margin: 0 auto;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3 { margin: 0; font-weight: 600; text-wrap: balance; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  header {
+    padding: 28px 0 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .daycount {
+    font-family: var(--mono);
+    font-size: 52px;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+  }
+  .daycount small { font-size: 20px; color: var(--muted); letter-spacing: 0; }
+  .daycount .rest { color: var(--muted); font-size: 20px; }
+
+  .header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+
+  .icon-btn {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 8px;
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-family: var(--sans);
+    cursor: pointer;
+    transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+  }
+  .icon-btn:hover { color: var(--ink); border-color: #3a414d; }
+
+  section { padding: 28px 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: 0; }
+
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+
+  .stepper { display: flex; align-items: center; gap: 8px; }
+  .stepper .label { font-family: var(--mono); font-size: 13px; color: var(--ink); min-width: 128px; text-align: center; }
+  .stepper button {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+  }
+  .stepper button:disabled { color: #464e5b; cursor: default; }
+
+  .meter { height: 4px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin: 14px 0 4px; }
+  .meter > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.5s var(--ease); }
+  .meter-label { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .meter-label b { color: var(--ink); font-weight: 600; }
+
+  .group { margin-top: 22px; }
+  .group > .eyebrow { display: block; margin-bottom: 8px; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 48px;
+    padding: 8px 12px 8px 8px;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    font-size: 15px;
+    font-family: var(--sans);
+    text-align: left;
+    cursor: pointer;
+  }
+  .row:last-child { border-bottom: 0; }
+  .row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+
+  .box {
+    flex: 0 0 auto;
+    width: 22px; height: 22px;
+    border: 1.5px solid #3a414d;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    transition: background-color 0.18s var(--ease), border-color 0.18s var(--ease);
+  }
+  .box svg { width: 13px; height: 13px; opacity: 0; transform: scale(0.7); transition: opacity 0.18s var(--ease), transform 0.18s var(--ease); }
+  .row[aria-pressed="true"] .box { background: var(--accent); border-color: var(--accent); }
+  .row[aria-pressed="true"] .box svg { opacity: 1; transform: scale(1); }
+  .row[aria-pressed="true"] .txt { color: var(--muted); text-decoration: line-through; text-decoration-color: #3a414d; }
+
+  .txt { flex: 1; transition: color 0.18s var(--ease); }
+  .hint { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; text-decoration: none; }
+  .row.na { cursor: default; }
+  .row.na .box { border-style: dashed; border-color: #2f3641; }
+  .row.na .txt { color: var(--muted); }
+  .na-tag { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .stat { background: var(--bg); padding: 16px 14px; }
+  .stat .v { font-family: var(--mono); font-size: 26px; letter-spacing: -0.02em; display: block; margin-bottom: 4px; }
+  .stat .v.accent { color: var(--accent); }
+  .stat .k { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; font-family: var(--mono); }
+
+  .board { display: grid; grid-template-columns: repeat(15, 1fr); gap: 4px; }
+  .cell {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 3px;
+    background: var(--surface);
+    border: 1px solid transparent;
+    overflow: hidden;
+    padding: 0;
+    cursor: pointer;
+  }
+  .cell > i {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 0;
+    background: var(--accent-dim);
+    transition: height 0.4s var(--ease);
+  }
+  .cell.perfect > i { background: var(--accent); }
+  .cell.miss { border-color: #3a2226; }
+  .cell.today { border-color: var(--ink); }
+  .cell.future { background: #0f1216; cursor: default; }
+  .cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  .trend { width: 100%; height: 110px; display: block; }
+  .trend rect.bar { fill: var(--accent-dim); }
+  .trend rect.bar.perfect { fill: var(--accent); }
+  .trend text { fill: var(--muted); font-family: var(--mono); font-size: 8px; }
+  .trend line.axis { stroke: var(--line); }
+
+  .rate { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .rate:last-child { border-bottom: 0; }
+  .rate .name { flex: 1; font-size: 14px; }
+  .rate .bar { flex: 0 0 90px; height: 4px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+  .rate .bar > i { display: block; height: 100%; background: var(--accent); }
+  .rate .bar > i.low { background: var(--fail); }
+  .rate .pct { flex: 0 0 42px; text-align: right; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+
+  .callout {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-left: 2px solid var(--fail);
+    background: var(--surface);
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .callout.good { border-left-color: var(--accent); }
+
+  .weight-form { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+  input[type="number"], input[type="date"] {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 0 12px;
+    font-family: var(--mono);
+    font-size: 16px;
+    width: 100%;
+  }
+  input:focus-visible { outline: 2px solid var(--accent); border-color: var(--accent); }
+
+  .btn {
+    background: var(--accent);
+    color: #08282e;
+    border: 0;
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 0 18px;
+    font-weight: 600;
+    font-size: 14px;
+    font-family: var(--sans);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn.ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+  .btn.danger { background: var(--surface); color: var(--fail); border: 1px solid #3a2226; font-weight: 500; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .spark { width: 100%; height: 70px; display: block; }
+  .spark polyline { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linejoin: round; }
+  .spark circle { fill: var(--accent); }
+  .spark text { fill: var(--muted); font-family: var(--mono); font-size: 9px; }
+
+  .empty { color: var(--muted); font-size: 13px; padding: 12px 0; }
+
+  .sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(4, 6, 8, 0.72);
+    z-index: var(--z-sheet);
+    display: grid;
+    place-items: center;
+    padding: 16px;
+  }
+  .sheet {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 400px;
+  }
+  .sheet h2 { font-size: 20px; margin-bottom: 6px; }
+  .sheet p { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0 0 20px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-family: var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+  .sheet-actions { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+  .sheet-actions .btn { flex: 1; }
+
+  footer { padding: 24px 0 8px; color: var(--muted); font-size: 12px; font-family: var(--mono); text-align: center; }
+  .ok { color: var(--accent); }
+  .warn { color: var(--fail); }
+
+  @media (max-width: 400px) {
+    .board { gap: 3px; }
+    .daycount { font-size: 44px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app" aria-live="polite"></div>
+<div id="sheet-root"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+   * Config
+   * ========================================================== */
+  var TOTAL_DAYS = 75;
+  var STORE_KEY = "challenge75:v1";
+
+  var HABITS = [
+    { id: "gym",        group: "Training",   label: "Gym training",                 hint: "6 dagen per week, zondag is hersteldag", restExempt: true },
+    { id: "walk",       group: "Training",   label: "Wandelen 45 tot 60 min",       hint: "Buiten als het kan" },
+    { id: "mobility",   group: "Training",   label: "Stretchen of mobility",        hint: "10 minuten" },
+    { id: "nosoda",     group: "Voeding",    label: "Geen frisdrank" },
+    { id: "nosugar",    group: "Voeding",    label: "Geen toegevoegde suiker of snoep" },
+    { id: "nofastfood", group: "Voeding",    label: "Geen fastfood" },
+    { id: "protein",    group: "Voeding",    label: "Eiwitdoel gehaald",            dynamicHint: true },
+    { id: "water",      group: "Voeding",    label: "3 liter water" },
+    { id: "read",       group: "Groei",      label: "10 paginas lezen" },
+    { id: "learn",      group: "Groei",      label: "10 minuten leren",             hint: "Coding, ICT, webdev, finance" },
+    { id: "sleep",      group: "Herstel",    label: "7,5 tot 9 uur slaap" },
+    { id: "nophone",    group: "Herstel",    label: "Geen telefoon 30 min voor bed" },
+    { id: "bed",        group: "Discipline", label: "Bed opmaken" },
+    { id: "top3",       group: "Discipline", label: "Top 3 taken afgerond" },
+    { id: "social",     group: "Discipline", label: "Social media onder 30 min" }
+  ];
+
+  var WEEKLY = [
+    { id: "gym6",     label: "6 van de 6 gym sessies" },
+    { id: "walks7",   label: "7 wandelingen gedaan" },
+    { id: "mealprep", label: "Meal prep of week plannen" },
+    { id: "weighin",  label: "Gewicht bijgehouden" },
+    { id: "photo",    label: "Progressiefoto gemaakt" },
+    { id: "clean",    label: "Kamer en werkplek opgeruimd" },
+    { id: "reflect",  label: "Week terugkijken en volgende plannen" }
+  ];
+
+  var GROUPS = ["Training", "Voeding", "Groei", "Herstel", "Discipline"];
+
+  /* ============================================================
+   * Opslag: localStorage, met geheugen als fallback
+   * ========================================================== */
+  var memory = {};
+  var storageOk = (function () {
+    try {
+      var t = "__t";
+      window.localStorage.setItem(t, "1");
+      window.localStorage.removeItem(t);
+      return true;
+    } catch (err) {
+      return false; // private mode, sandbox of storage uit
+    }
+  })();
+
+  function load() {
+    try {
+      var raw = storageOk ? window.localStorage.getItem(STORE_KEY) : memory[STORE_KEY];
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  var saveFailed = false;
+
+  function save() {
+    var payload;
+    try {
+      payload = JSON.stringify(state);
+    } catch (err) {
+      saveFailed = true;
+      return;
+    }
+    if (!storageOk) { memory[STORE_KEY] = payload; return; }
+    try {
+      window.localStorage.setItem(STORE_KEY, payload);
+      saveFailed = false;
+    } catch (err) {
+      saveFailed = true; // quota vol of opslag geblokkeerd
+    }
+  }
+
+  /* ============================================================
+   * Datum helpers, lokale tijd
+   * ========================================================== */
+  function key(d) {
+    return d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
+  }
+  function parseKey(k) {
+    var p = k.split("-").map(Number);
+    return new Date(p[0], p[1] - 1, p[2]);
+  }
+  function addDays(d, n) {
+    var c = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    c.setDate(c.getDate() + n);
+    return c;
+  }
+  function diffDays(a, b) {
+    return Math.round((parseKey(key(b)) - parseKey(key(a))) / 86400000);
+  }
+  function isSunday(d) { return d.getDay() === 0; }
+
+  var DAY_NAMES = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
+  var MONTHS = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+
+  function longLabel(d) {
+    return DAY_NAMES[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()];
+  }
+  function nl(n, dec) {
+    return n.toFixed(dec === undefined ? 1 : dec).replace(".", ",");
+  }
+
+  /* ============================================================
+   * State
+   * ========================================================== */
+  var state = null;
+  var viewDate = new Date();
+
+  function defaultState() {
+    return {
+      config: { startDate: key(new Date()), bodyweight: null },
+      days: {},
+      weeks: {}
+    };
+  }
+
+  function dayRecord(k) {
+    if (!state.days[k]) state.days[k] = { habits: {} };
+    if (!state.days[k].habits) state.days[k].habits = {};
+    return state.days[k];
+  }
+
+  function requiredHabits(d) {
+    return HABITS.filter(function (h) { return !(h.restExempt && isSunday(d)); });
+  }
+
+  function completionFor(d) {
+    var rec = state.days[key(d)];
+    var req = requiredHabits(d);
+    var done = rec ? req.filter(function (h) { return rec.habits[h.id]; }).length : 0;
+    return { done: done, total: req.length, pct: req.length ? done / req.length : 0 };
+  }
+
+  function startDate() { return parseKey(state.config.startDate); }
+  function dayIndex(d) { return diffDays(startDate(), d) + 1; }
+  function elapsedDays() { return Math.max(0, Math.min(TOTAL_DAYS, dayIndex(new Date()))); }
+
+  function proteinHint() {
+    var bw = state.config.bodyweight;
+    if (!bw) return "1,6 tot 2,2 g per kg lichaamsgewicht";
+    return Math.round(bw * 1.6) + " tot " + Math.round(bw * 2.2) + " g eiwit";
+  }
+
+  /* ============================================================
+   * Statistieken
+   * ========================================================== */
+  function stats() {
+    var idx = dayIndex(new Date());
+    var elapsed = elapsedDays();
+    var doneSum = 0, reqSum = 0, perfect = 0, missed = 0, i, d, c;
+
+    for (i = 1; i <= elapsed; i++) {
+      d = addDays(startDate(), i - 1);
+      c = completionFor(d);
+      doneSum += c.done;
+      reqSum += c.total;
+      if (c.total > 0 && c.done === c.total) perfect++;
+      else if (i < idx) missed++;
+    }
+
+    var streak = 0;
+    var cursor = elapsed;
+    if (cursor >= 1) {
+      var today = completionFor(addDays(startDate(), cursor - 1));
+      if (today.done < today.total) cursor--; // vandaag loopt nog
+    }
+    while (cursor >= 1) {
+      c = completionFor(addDays(startDate(), cursor - 1));
+      if (c.total > 0 && c.done === c.total) { streak++; cursor--; }
+      else break;
+    }
+
+    var rates = HABITS.map(function (h) {
+      var done = 0, total = 0, day, rec;
+      for (var j = 1; j <= elapsed; j++) {
+        day = addDays(startDate(), j - 1);
+        if (h.restExempt && isSunday(day)) continue;
+        total++;
+        rec = state.days[key(day)];
+        if (rec && rec.habits[h.id]) done++;
+      }
+      return { id: h.id, label: h.label, pct: total ? done / total : 0 };
+    });
+
+    return {
+      idx: idx,
+      elapsed: elapsed,
+      remaining: Math.max(0, TOTAL_DAYS - Math.max(0, idx)),
+      overall: reqSum ? doneSum / reqSum : 0,
+      perfect: perfect,
+      missed: missed,
+      streak: streak,
+      rates: rates,
+      finished: idx > TOTAL_DAYS,
+      notStarted: idx < 1
+    };
+  }
+
+  /* ============================================================
+   * Render
+   * ========================================================== */
+  var app = document.getElementById("app");
+  var sheetRoot = document.getElementById("sheet-root");
+
+  var CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="#08282e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>';
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function render() {
+    var s = stats();
+    var isToday = key(viewDate) === key(new Date());
+
+    app.innerHTML =
+      renderHeader(s) +
+      renderDay(s, isToday) +
+      renderStats(s) +
+      renderBoard() +
+      renderTrend() +
+      renderRates(s) +
+      (isSunday(viewDate) ? renderWeekly() : "") +
+      renderWeight() +
+      footerHTML();
+
+    bind();
+  }
+
+  function renderHeader(s) {
+    var big, sub;
+    if (s.notStarted) {
+      big = '<span class="rest">Start ' + esc(longLabel(startDate())) + "</span>";
+      sub = "Nog niet begonnen";
+    } else if (s.finished) {
+      big = "75<small>/75</small>";
+      sub = "Challenge afgerond";
+    } else {
+      big = s.idx + "<small>/75</small>";
+      sub = s.remaining + " dagen te gaan";
+    }
+
+    return "<header>" +
+      "<div>" +
+        '<span class="eyebrow">75 Dagen Challenge</span>' +
+        '<div class="daycount" style="margin-top:8px">' + big + "</div>" +
+      "</div>" +
+      '<div class="header-right">' +
+        '<span class="eyebrow">' + esc(sub) + "</span>" +
+        '<button class="icon-btn" data-act="settings">Instellingen</button>' +
+      "</div>" +
+    "</header>";
+  }
+
+  function renderDay(s, isToday) {
+    var vIdx = dayIndex(viewDate);
+    var outside = vIdx < 1 || vIdx > TOTAL_DAYS;
+    var canForward = key(viewDate) !== key(new Date());
+    var c = completionFor(viewDate);
+    var pct = Math.round(c.pct * 100);
+    var rows = "";
+
+    GROUPS.forEach(function (g) {
+      var items = HABITS.filter(function (h) { return h.group === g; });
+      if (!items.length) return;
+      rows += '<div class="group"><span class="eyebrow">' + esc(g) + "</span>";
+      items.forEach(function (h) {
+        var na = h.restExempt && isSunday(viewDate);
+        var rec = state.days[key(viewDate)];
+        var on = !!(rec && rec.habits[h.id]);
+        var hint = h.dynamicHint ? proteinHint() : (h.hint || "");
+        rows += '<button class="row' + (na ? " na" : "") + '" data-habit="' + h.id + '" aria-pressed="' + (na ? "false" : on) + '"' + (na ? " disabled" : "") + ">" +
+          '<span class="box">' + CHECK + "</span>" +
+          '<span class="txt">' + esc(h.label) + (hint ? '<span class="hint">' + esc(hint) + "</span>" : "") + "</span>" +
+          (na ? '<span class="na-tag">RUST</span>' : "") +
+        "</button>";
+      });
+      rows += "</div>";
+    });
+
+    return "<section>" +
+      '<div class="sec-head">' +
+        '<h2 style="font-size:17px">' + (isToday ? "Vandaag" : esc(longLabel(viewDate))) + "</h2>" +
+        '<div class="stepper">' +
+          '<button data-act="prev" aria-label="Vorige dag">&#8592;</button>' +
+          '<span class="label">' + (outside ? "Buiten challenge" : "Dag " + vIdx + " van 75") + "</span>" +
+          '<button data-act="next" aria-label="Volgende dag"' + (canForward ? "" : " disabled") + ">&#8594;</button>" +
+        "</div>" +
+      "</div>" +
+      '<div class="meter"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="meter-label"><span><b>' + c.done + "</b> van " + c.total + " gedaan</span><span>" + pct + "%</span></div>" +
+      rows +
+    "</section>";
+  }
+
+  function stat(v, k, accent) {
+    return '<div class="stat"><span class="v' + (accent ? " accent" : "") + '">' + esc(v) + '</span><span class="k">' + esc(k) + "</span></div>";
+  }
+
+  function renderStats(s) {
+    return "<section>" +
+      '<div class="sec-head"><h2 style="font-size:17px">Voortgang</h2><span class="eyebrow">Live bijgewerkt</span></div>' +
+      '<div class="stats">' +
+        stat(s.streak, "Dagen streak", true) +
+        stat(s.perfect, "Perfecte dagen") +
+        stat(Math.round(s.overall * 100) + "%", "Habits gehaald") +
+        stat(s.missed, "Dagen gemist") +
+      "</div>" +
+    "</section>";
+  }
+
+  function renderBoard() {
+    var cells = "";
+    var todayKey = key(new Date());
+
+    for (var i = 1; i <= TOTAL_DAYS; i++) {
+      var d = addDays(startDate(), i - 1);
+      var k = key(d);
+      var c = completionFor(d);
+      var future = diffDays(new Date(), d) > 0;
+      var isT = k === todayKey;
+      var perfect = c.total > 0 && c.done === c.total;
+      var cls = ["cell"];
+      if (future) cls.push("future");
+      if (perfect) cls.push("perfect");
+      if (!future && !isT && !perfect) cls.push("miss");
+      if (isT) cls.push("today");
+      cells += '<button class="' + cls.join(" ") + '" data-goto="' + k + '" aria-label="Dag ' + i + '" title="Dag ' + i + ", " + Math.round(c.pct * 100) + '%"' + (future ? " disabled" : "") + '><i style="height:' + (future ? 0 : Math.round(c.pct * 100)) + '%"></i></button>';
+    }
+
+    return "<section>" +
+      '<div class="sec-head"><h2 style="font-size:17px">Het bord</h2><span class="eyebrow">Tik een dag aan</span></div>' +
+      '<div class="board">' + cells + "</div>" +
+      '<div class="legend">' +
+        '<span><i class="swatch" style="background:var(--accent)"></i>Perfecte dag</span>' +
+        '<span><i class="swatch" style="background:var(--accent-dim)"></i>Deels</span>' +
+        '<span><i class="swatch" style="background:var(--surface);border:1px solid #3a2226"></i>Gemist</span>' +
+        '<span><i class="swatch" style="background:#0f1216"></i>Nog te gaan</span>' +
+      "</div>" +
+    "</section>";
+  }
+
+  function renderTrend() {
+    var N = 14, w = 100, h = 40, pad = 2;
+    var bw = (w - pad * 2) / N;
+    var bars = "", labels = "";
+
+    for (var i = 0; i < N; i++) {
+      var d = addDays(new Date(), -(N - 1 - i));
+      var idx = dayIndex(d);
+      var inRange = idx >= 1 && idx <= TOTAL_DAYS;
+      var c = inRange ? completionFor(d) : { pct: 0, done: 0, total: 0 };
+      var bh = c.pct > 0 ? Math.max(c.pct * (h - 6), 1) : 0;
+      var x = pad + i * bw;
+      var perfect = c.total > 0 && c.done === c.total;
+      bars += '<rect class="bar' + (perfect ? " perfect" : "") + '" x="' + (x + bw * 0.15).toFixed(2) + '" y="' + (h - bh).toFixed(2) + '" width="' + (bw * 0.7).toFixed(2) + '" height="' + bh.toFixed(2) + '" rx="0.6"></rect>';
+      if (i % 3 === 0 || i === N - 1) {
+        labels += '<text x="' + (x + bw / 2).toFixed(2) + '" y="' + (h + 6) + '" text-anchor="middle">' + d.getDate() + "</text>";
+      }
+    }
+
+    return "<section>" +
+      '<div class="sec-head"><h2 style="font-size:17px">Laatste 14 dagen</h2><span class="eyebrow">Per dag voltooid</span></div>' +
+      '<svg class="trend" viewBox="0 0 100 48" preserveAspectRatio="none" role="img" aria-label="Voltooiing van de laatste 14 dagen">' +
+        '<line class="axis" x1="0" y1="40" x2="100" y2="40" stroke-width="0.3"></line>' +
+        bars + labels +
+      "</svg>" +
+    "</section>";
+  }
+
+  function renderRates(s) {
+    if (s.elapsed < 1) return "";
+    var sorted = s.rates.slice().sort(function (a, b) { return a.pct - b.pct; });
+    var rows = "";
+
+    sorted.forEach(function (r) {
+      var pct = Math.round(r.pct * 100);
+      rows += '<div class="rate">' +
+        '<span class="name">' + esc(r.label) + "</span>" +
+        '<span class="bar"><i class="' + (pct < 70 ? "low" : "") + '" style="width:' + pct + '%"></i></span>' +
+        '<span class="pct">' + pct + "%</span>" +
+      "</div>";
+    });
+
+    var weakest = sorted[0];
+    var callout = "";
+    if (weakest && weakest.pct < 0.8) {
+      callout = '<div class="callout">Zwakste schakel: <b>' + esc(weakest.label) + "</b> op " + Math.round(weakest.pct * 100) + "%. " +
+        "Fix deze ene habit en je aantal perfecte dagen beweegt harder dan met wat je ook verder verandert.</div>";
+    } else if (weakest) {
+      callout = '<div class="callout good">Geen zwakke schakel. Laagste habit is ' + esc(weakest.label) + " op " + Math.round(weakest.pct * 100) + "%.</div>";
+    }
+
+    return "<section>" +
+      '<div class="sec-head"><h2 style="font-size:17px">Consistentie per habit</h2><span class="eyebrow">Zwakste eerst</span></div>' +
+      rows + callout +
+    "</section>";
+  }
+
+  function renderWeekly() {
+    var wk = key(viewDate);
+    var rec = state.weeks[wk] || {};
+    var rows = "";
+
+    WEEKLY.forEach(function (w) {
+      rows += '<button class="row" data-weekly="' + w.id + '" aria-pressed="' + !!rec[w.id] + '">' +
+        '<span class="box">' + CHECK + "</span>" +
+        '<span class="txt">' + esc(w.label) + "</span>" +
+      "</button>";
+    });
+
+    return "<section>" +
+      '<div class="sec-head"><h2 style="font-size:17px">Zondagreview</h2><span class="eyebrow">Wekelijks</span></div>' +
+      rows +
+    "</section>";
+  }
+
+  function renderWeight() {
+    var entries = Object.keys(state.days)
+      .filter(function (k) { return typeof state.days[k].weight === "number"; })
+      .sort()
+      .map(function (k) { return { k: k, v: state.days[k].weight }; });
+
+    var chart = '<p class="empty">Nog geen weging gelogd. Weeg jezelf op een vaste dag voor een schone trendlijn.</p>';
+
+    if (entries.length === 1) {
+      chart = '<p class="empty">Een weging gelogd: ' + nl(entries[0].v) + " kg. Voeg een tweede toe voor een trend.</p>";
+    } else if (entries.length >= 2) {
+      var vals = entries.map(function (e) { return e.v; });
+      var min = Math.min.apply(null, vals);
+      var max = Math.max.apply(null, vals);
+      var span = (max - min) || 1;
+      var w = 100, h = 34, pad = 4;
+
+      var pts = entries.map(function (e, i) {
+        var x = pad + (i / (entries.length - 1)) * (w - pad * 2);
+        var y = pad + (1 - (e.v - min) / span) * (h - pad * 2);
+        return x.toFixed(2) + "," + y.toFixed(2);
+      });
+      var last = pts[pts.length - 1].split(",");
+      var delta = entries[entries.length - 1].v - entries[0].v;
+
+      chart =
+        '<svg class="spark" viewBox="0 0 100 46" preserveAspectRatio="none" role="img" aria-label="Trend lichaamsgewicht">' +
+          '<polyline points="' + pts.join(" ") + '" vector-effect="non-scaling-stroke"></polyline>' +
+          '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="1.2"></circle>' +
+          '<text x="0" y="44">' + nl(min) + " kg</text>" +
+          '<text x="100" y="44" text-anchor="end">' + nl(max) + " kg</text>" +
+        "</svg>" +
+        '<div class="meter-label" style="margin-top:6px"><span>' + entries.length + " wegingen</span><span><b>" +
+          (delta >= 0 ? "+" : "") + nl(delta) + " kg</b> sinds de start</span></div>";
+    }
+
+    var rec = state.days[key(viewDate)];
+    var current = rec && typeof rec.weight === "number" ? rec.weight : "";
+
+    return "<section>" +
+      '<div class="sec-head"><h2 style="font-size:17px">Lichaamsgewicht</h2><span class="eyebrow">' + esc(longLabel(viewDate)) + "</span></div>" +
+      '<div class="weight-form">' +
+        '<input type="number" inputmode="decimal" step="0.1" min="30" max="250" id="weight-input" placeholder="kg" value="' + current + '" aria-label="Lichaamsgewicht in kilogram">' +
+        '<button class="btn" data-act="save-weight">Opslaan</button>' +
+      "</div>" +
+      chart +
+    "</section>";
+  }
+
+  function footerHTML() {
+    var cls = "ok", note = "Automatisch opgeslagen op dit apparaat";
+    if (!storageOk) { cls = "warn"; note = "Opslag geblokkeerd, deze sessie wordt niet bewaard"; }
+    else if (saveFailed) { cls = "warn"; note = "Opslaan mislukt, opslag is mogelijk vol"; }
+    return '<footer><span class="' + cls + '">' + esc(note) + "</span></footer>";
+  }
+
+  /* ============================================================
+   * Events
+   * ========================================================== */
+  function bind() {
+    app.querySelectorAll("[data-habit]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var rec = dayRecord(key(viewDate));
+        var id = btn.dataset.habit;
+        if (rec.habits[id]) delete rec.habits[id];
+        else rec.habits[id] = true;
+        save();
+        render();
+      });
+    });
+
+    app.querySelectorAll("[data-weekly]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var wk = key(viewDate);
+        var id = btn.dataset.weekly;
+        if (!state.weeks[wk]) state.weeks[wk] = {};
+        if (state.weeks[wk][id]) delete state.weeks[wk][id];
+        else state.weeks[wk][id] = true;
+        save();
+        render();
+      });
+    });
+
+    app.querySelectorAll("[data-goto]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var d = parseKey(btn.dataset.goto);
+        if (diffDays(new Date(), d) > 0) return;
+        viewDate = d;
+        render();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+
+    var prev = app.querySelector('[data-act="prev"]');
+    if (prev) prev.addEventListener("click", function () { viewDate = addDays(viewDate, -1); render(); });
+
+    var next = app.querySelector('[data-act="next"]');
+    if (next) next.addEventListener("click", function () {
+      var n = addDays(viewDate, 1);
+      if (diffDays(new Date(), n) > 0) return;
+      viewDate = n;
+      render();
+    });
+
+    var settings = app.querySelector('[data-act="settings"]');
+    if (settings) settings.addEventListener("click", openSettings);
+
+    var saveW = app.querySelector('[data-act="save-weight"]');
+    if (saveW) saveW.addEventListener("click", function () {
+      var v = parseFloat(document.getElementById("weight-input").value);
+      var rec = dayRecord(key(viewDate));
+      if (isNaN(v)) delete rec.weight;
+      else rec.weight = Math.round(v * 10) / 10;
+      save();
+      render();
+    });
+  }
+
+  /* ============================================================
+   * Setup en instellingen
+   * ========================================================== */
+  function openSetup() {
+    sheetRoot.innerHTML =
+      '<div class="sheet-backdrop"><div class="sheet" role="dialog" aria-modal="true" aria-label="Start de challenge">' +
+        "<h2>Start de challenge</h2>" +
+        "<p>Kies de datum van dag 1 en je huidige gewicht. Je gewicht bepaalt je eiwitdoel. Allebei later aan te passen.</p>" +
+        '<div class="field"><label for="s-date">Dag 1</label><input type="date" id="s-date" value="' + key(new Date()) + '"></div>' +
+        '<div class="field"><label for="s-weight">Gewicht in kg, optioneel</label><input type="number" inputmode="decimal" step="0.1" id="s-weight" placeholder="78,0"></div>' +
+        '<div class="sheet-actions"><button class="btn" data-act="begin">Starten</button></div>' +
+      "</div></div>";
+
+    sheetRoot.querySelector('[data-act="begin"]').addEventListener("click", function () {
+      var d = document.getElementById("s-date").value;
+      var w = parseFloat(document.getElementById("s-weight").value);
+      state = defaultState();
+      if (d) state.config.startDate = d;
+      if (!isNaN(w)) {
+        state.config.bodyweight = w;
+        dayRecord(state.config.startDate).weight = Math.round(w * 10) / 10;
+      }
+      sheetRoot.innerHTML = "";
+      save();
+      render();
+    });
+  }
+
+  function openSettings() {
+    sheetRoot.innerHTML =
+      '<div class="sheet-backdrop"><div class="sheet" role="dialog" aria-modal="true" aria-label="Instellingen">' +
+        "<h2>Instellingen</h2>" +
+        "<p>Dag 1 verzetten schuift het hele bord op. Logs blijven aan hun kalenderdatum hangen.</p>" +
+        '<div class="field"><label for="c-date">Dag 1</label><input type="date" id="c-date" value="' + esc(state.config.startDate) + '"></div>' +
+        '<div class="field"><label for="c-weight">Gewicht in kg</label><input type="number" inputmode="decimal" step="0.1" id="c-weight" value="' + (state.config.bodyweight || "") + '"></div>' +
+        '<div class="sheet-actions">' +
+          '<button class="btn" data-act="apply">Opslaan</button>' +
+          '<button class="btn ghost" data-act="close">Annuleren</button>' +
+        "</div>" +
+        '<div class="sheet-actions">' +
+          '<button class="btn ghost" data-act="export">Back-up exporteren</button>' +
+          '<button class="btn ghost" data-act="import">Importeren</button>' +
+        "</div>" +
+        '<div class="sheet-actions">' +
+          '<button class="btn danger" data-act="reset">Alles wissen</button>' +
+        "</div>" +
+        '<input type="file" id="import-file" accept="application/json" hidden>' +
+      "</div></div>";
+
+    function close() { sheetRoot.innerHTML = ""; }
+
+    sheetRoot.querySelector('[data-act="close"]').addEventListener("click", close);
+    sheetRoot.querySelector(".sheet-backdrop").addEventListener("click", function (e) {
+      if (e.target.classList.contains("sheet-backdrop")) close();
+    });
+
+    sheetRoot.querySelector('[data-act="apply"]').addEventListener("click", function () {
+      var d = document.getElementById("c-date").value;
+      var w = parseFloat(document.getElementById("c-weight").value);
+      if (d) state.config.startDate = d;
+      state.config.bodyweight = isNaN(w) ? null : w;
+      close();
+      save();
+      render();
+    });
+
+    sheetRoot.querySelector('[data-act="export"]').addEventListener("click", function () {
+      var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "challenge75-" + key(new Date()) + ".json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    var fileInput = sheetRoot.querySelector("#import-file");
+    sheetRoot.querySelector('[data-act="import"]').addEventListener("click", function () { fileInput.click(); });
+
+    fileInput.addEventListener("change", function () {
+      var file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var parsed = JSON.parse(reader.result);
+          if (!parsed || !parsed.config || !parsed.config.startDate) throw new Error("ongeldig bestand");
+          state = parsed;
+          if (!state.days) state.days = {};
+          if (!state.weeks) state.weeks = {};
+          viewDate = new Date();
+          close();
+          save();
+          render();
+        } catch (err) {
+          alert("Dit bestand kan ik niet lezen. Kies een back-up die je met deze app hebt geexporteerd.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    var resetBtn = sheetRoot.querySelector('[data-act="reset"]');
+    resetBtn.addEventListener("click", function () {
+      if (resetBtn.dataset.confirm !== "1") {
+        resetBtn.dataset.confirm = "1";
+        resetBtn.textContent = "Tik nog een keer om te wissen";
+        return;
+      }
+      state = defaultState();
+      viewDate = new Date();
+      close();
+      save();
+      openSetup();
+    });
+  }
+
+  /* ============================================================
+   * Boot
+   * ========================================================== */
+  var stored = load();
+  if (stored && stored.config && stored.config.startDate) {
+    state = stored;
+    if (!state.days) state.days = {};
+    if (!state.weeks) state.weeks = {};
+    render();
+  } else {
+    state = defaultState();
+    render();
+    openSetup();
+  }
+
+  // Bij terugkeren na middernacht opnieuw renderen, zodat "vandaag" klopt
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) render();
+  });
+})();
+</script>
+</body>
+</html>
