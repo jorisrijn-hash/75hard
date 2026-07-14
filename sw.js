@@ -3,7 +3,7 @@
  * Alle data staat toch in localStorage, dus er is niets dat het netwerk nodig heeft.
  */
 
-const CACHE = "c75-v2";
+const CACHE = "c75-v3";
 
 const PRECACHE = [
   "/",
