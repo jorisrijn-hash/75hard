@@ -108,7 +108,7 @@
 
   /* widgets */
   main { padding-top: 16px; }
-  .view { animation: viewIn 0.4s var(--ease) both; }
+  .view.animate { animation: viewIn 0.4s var(--ease) both; }
   @keyframes viewIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
   .w {
@@ -116,15 +116,19 @@
     border-radius: var(--r);
     padding: 16px;
     margin-bottom: 12px;
-    animation: pop 0.42s var(--ease) both;
   }
-  .stagger > *:nth-child(1) { animation-delay: 0.02s; }
-  .stagger > *:nth-child(2) { animation-delay: 0.06s; }
-  .stagger > *:nth-child(3) { animation-delay: 0.10s; }
-  .stagger > *:nth-child(4) { animation-delay: 0.14s; }
-  .stagger > *:nth-child(5) { animation-delay: 0.18s; }
-  .stagger > *:nth-child(6) { animation-delay: 0.22s; }
-  .stagger > *:nth-child(7) { animation-delay: 0.26s; }
+  /* Alleen bij een view wissel animeren de kaarten in. Bij het afvinken van een
+     habit rendert dezelfde view opnieuw, en dan zou pop het scherm zwart flitsen. */
+  .view.animate > .w,
+  .view.animate > .grid > .tile,
+  .view.animate > .rings-wrap { animation: pop 0.42s var(--ease) both; }
+  .view.animate > *:nth-child(1) { animation-delay: 0.02s; }
+  .view.animate > *:nth-child(2) { animation-delay: 0.06s; }
+  .view.animate > *:nth-child(3) { animation-delay: 0.10s; }
+  .view.animate > *:nth-child(4) { animation-delay: 0.14s; }
+  .view.animate > *:nth-child(5) { animation-delay: 0.18s; }
+  .view.animate > *:nth-child(6) { animation-delay: 0.22s; }
+  .view.animate > *:nth-child(7) { animation-delay: 0.26s; }
   @keyframes pop { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
 
   .w-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
@@ -134,24 +138,34 @@
   .w-head .r { margin-left: auto; font-size: 13px; color: var(--muted); font-family: var(--mono); }
 
   /* rings */
-  .rings-wrap { perspective: 1000px; }
+  .rings-wrap { perspective: 900px; margin-bottom: 12px; }
   .rings {
     background: linear-gradient(165deg, #202228 0%, #121316 100%);
     border-radius: 26px;
     padding: 22px 20px;
-    display: flex; align-items: center; gap: 16px;
     transform-style: preserve-3d;
-    transition: transform 0.55s var(--ease);
+    transition: transform 0.6s var(--ease);
     box-shadow: 0 22px 50px rgba(0, 0, 0, 0.65);
     position: relative; overflow: hidden;
-    margin-bottom: 12px;
-    animation: pop 0.5s var(--ease) both;
+    touch-action: none; /* anders scrollt je vinger de pagina in plaats van de kaart te kantelen */
+    cursor: grab;
   }
   .rings::after {
     content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(55% 55% at var(--gx, 60%) var(--gy, 20%), rgba(255,255,255,0.09), transparent 70%);
+    background: radial-gradient(55% 55% at var(--gx, 60%) var(--gy, 20%), rgba(255,255,255,0.10), transparent 70%);
   }
-  .rings svg { width: 140px; height: 140px; flex: 0 0 auto; transform: rotate(-90deg) translateZ(30px); }
+  /* Aparte laag voor de idle beweging, zodat die niet vecht met de sleep transform */
+  .rings-inner {
+    display: flex; align-items: center; gap: 16px;
+    transform-style: preserve-3d;
+    animation: breathe 8s ease-in-out infinite;
+  }
+  .rings.grabbed .rings-inner { animation-play-state: paused; }
+  @keyframes breathe {
+    0%, 100% { transform: rotateY(-7deg) rotateX(3deg); }
+    50%      { transform: rotateY(7deg) rotateX(-3deg); }
+  }
+  .rings svg { width: 140px; height: 140px; flex: 0 0 auto; transform: rotate(-90deg) translateZ(45px); }
   .rings circle { fill: none; stroke-width: 13; stroke-linecap: round; }
   .rings .track { opacity: 0.18; }
   .rings .val { transition: stroke-dashoffset 1s var(--ease); }
@@ -162,7 +176,7 @@
   .rings .val.e { filter: drop-shadow(0 0 5px rgba(48,209,88,0.5)); }
   .rings .val.i { filter: drop-shadow(0 0 5px rgba(100,210,255,0.5)); }
 
-  .legend { flex: 1; min-width: 0; transform: translateZ(30px); }
+  .legend { flex: 1; min-width: 0; transform: translateZ(22px); }
   .legend .lg { margin-bottom: 12px; }
   .legend .lg:last-child { margin-bottom: 0; }
   .legend .name { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
@@ -173,13 +187,13 @@
   .legend .i .num { color: var(--mind); }
 
   /* tiles */
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; perspective: 800px; }
   .tile {
     background: var(--fill); border-radius: var(--r); padding: 14px;
     animation: pop 0.42s var(--ease) both;
     transition: transform 0.3s var(--spring);
   }
-  .tile:active { transform: scale(0.96); }
+  .tile:active { transform: rotateX(8deg) scale(0.95); }
   .tile .lbl { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; margin-bottom: 10px; }
   .tile .lbl svg { width: 15px; height: 15px; }
   .tile .v { font-family: var(--mono); font-size: 30px; font-weight: 700; letter-spacing: -0.035em; line-height: 1; }
@@ -195,6 +209,7 @@
     width: 100%; min-height: 52px; padding: 9px 16px;
     background: none; border: 0; border-top: 1px solid var(--sep);
     color: var(--ink); font-size: 16px; text-align: left; cursor: pointer;
+    perspective: 600px; /* geeft de checkbox flip echte diepte */
     transition: background-color 0.15s linear, transform 0.25s var(--spring);
   }
   .row:last-child { border-radius: 0 0 var(--r) var(--r); }
@@ -208,7 +223,7 @@
     transition: transform 0.5s var(--spring), background-color 0.3s var(--ease), border-color 0.3s var(--ease);
   }
   .box svg { width: 14px; height: 14px; opacity: 0; transform: scale(0.4); transition: opacity 0.2s var(--ease), transform 0.4s var(--spring); }
-  [aria-pressed="true"] .box, .box.on { border-color: transparent; transform: rotateY(360deg); }
+  [aria-pressed="true"] .box, .box.on { border-color: transparent; transform: rotateY(360deg) scale(1.08); }
   [aria-pressed="true"] .box svg, .box.on svg { opacity: 1; transform: scale(1); }
 
   .txt { flex: 1; min-width: 0; font-size: 15px; }
@@ -219,10 +234,11 @@
   .row.locked:active { transform: none; background: none; }
 
   /* board */
-  .board-wrap { perspective: 900px; }
+  .board-wrap { perspective: 620px; }
   .board {
-    display: grid; grid-template-columns: repeat(15, 1fr); gap: 4px;
-    transform: rotateX(10deg); transform-style: preserve-3d;
+    display: grid; grid-template-columns: repeat(15, 1fr); gap: 5px;
+    transform: rotateX(22deg); transform-style: preserve-3d;
+    margin: 6px 0 16px;
   }
   .cell {
     aspect-ratio: 1; border-radius: 4px;
@@ -235,9 +251,13 @@
     background: rgba(255, 55, 95, 0.45);
     transition: height 0.7s var(--ease);
   }
-  .cell.perfect { background: linear-gradient(160deg, var(--move), #ff6b8a); }
+  .cell.perfect {
+    background: linear-gradient(160deg, var(--move), #ff6b8a);
+    transform: translateZ(8px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.55);
+  }
   .cell.miss { border-color: rgba(255, 69, 58, 0.4); }
-  .cell.today { border-color: #fff; transform: translateZ(12px) scale(1.1); }
+  .cell.today { border-color: #fff; transform: translateZ(22px) scale(1.14); box-shadow: 0 10px 16px rgba(0,0,0,0.6); }
   .cell.future { background: #161618; }
   .cell:active { transform: scale(0.85); }
 
@@ -264,7 +284,7 @@
   .empty { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0; }
 
   /* training */
-  .ex { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--sep); }
+  .ex { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--sep); perspective: 600px; }
   .ex-check { background: none; border: 0; padding: 3px; cursor: pointer; display: grid; place-items: center; }
   .ex-check[aria-pressed="true"] .box { background: linear-gradient(150deg, var(--move), #ff6b8a); }
   .ex-body { flex: 1; min-width: 0; }
@@ -883,10 +903,15 @@
 
     var circles = rd.map(function (r, i) {
       var C = 2 * Math.PI * R[i];
-      var off = C * (1 - Math.min(1, r.pct));
+      var target = C * (1 - Math.min(1, r.pct));
+      // Start op de vorige stand, zodat de ring doorloopt in plaats van springt
+      var prevPct = lastRings ? lastRings[i] : 0;
+      var from = C * (1 - Math.min(1, prevPct));
       return '<circle class="track ' + cls[i] + '" cx="70" cy="70" r="' + R[i] + '"/>' +
-             '<circle class="val ' + cls[i] + '" cx="70" cy="70" r="' + R[i] + '" stroke-dasharray="' + C.toFixed(1) +
-             '" stroke-dashoffset="' + off.toFixed(1) + '"/>';
+             '<circle class="val ' + cls[i] + '" cx="70" cy="70" r="' + R[i] +
+             '" stroke-dasharray="' + C.toFixed(1) +
+             '" stroke-dashoffset="' + from.toFixed(1) +
+             '" data-target="' + target.toFixed(1) + '"/>';
     }).join("");
 
     var legend = rd.map(function (r, i) {
@@ -896,8 +921,10 @@
     }).join("");
 
     return '<div class="rings-wrap"><div class="rings" id="rings">' +
-      '<svg viewBox="0 0 140 140">' + circles + "</svg>" +
-      '<div class="legend">' + legend + "</div></div></div>";
+      '<div class="rings-inner">' +
+        '<svg viewBox="0 0 140 140">' + circles + "</svg>" +
+        '<div class="legend">' + legend + "</div>" +
+      "</div></div></div>";
   }
 
   function tile(label, color, iconPath, value, unit, caption, pct) {
@@ -906,7 +933,7 @@
       '<div class="v">' + esc(String(value)) + (unit ? "<small>" + esc(unit) + "</small>" : "") + "</div>" +
       '<div class="c">' + esc(caption) + "</div>" +
       (typeof pct === "number"
-        ? '<div class="mini"><i style="width:' + Math.min(100, Math.round(pct * 100)) + "%;background:" + color + '"></i></div>'
+        ? '<div class="mini"><i data-w="' + Math.min(100, Math.round(pct * 100)) + '" style="width:0;background:' + color + '"></i></div>'
         : "") +
       "</div>";
   }
@@ -981,7 +1008,7 @@
         '<div class="list">' + autoRow("Gym sessies", wc.gym, 6) + autoRow("Wandelingen", wc.walks, 7) + manual + "</div></div>";
     }
 
-    return '<div class="view stagger">' + ringsWidget() + tiles + nav + groups + weekly + "</div>";
+    return ringsWidget() + tiles + nav + groups + weekly;
   }
 
   /* ---------- tab: training ---------- */
@@ -993,10 +1020,9 @@
       var items = prog.recovery.map(function (t) {
         return '<div class="rule"><span class="dot" style="background:var(--rest)"></span><span>' + esc(t) + "</span></div>";
       }).join("");
-      return '<div class="view stagger">' +
-        '<div class="w"><div class="w-head"><span class="ic">' + icon(ICONS.Herstel, "var(--rest)") +
+      return '<div class="w"><div class="w-head"><span class="ic">' + icon(ICONS.Herstel, "var(--rest)") +
         '</span><span class="t" style="color:var(--rest)">Herstel</span></div>' + items + "</div>" +
-        '<div class="w"><p class="empty">Geen gym vandaag. Wandelen en mobiliteit tellen gewoon door bij je habits.</p></div></div>';
+        '<div class="w"><p class="empty">Geen gym vandaag. Wandelen en mobiliteit tellen gewoon door bij je habits.</p></div>';
     }
 
     var w = workoutFor(viewDate);
@@ -1017,20 +1043,18 @@
         (typeof entry.kg === "number" ? entry.kg : "") + '" data-kg="' + e.id + '" aria-label="Gewicht"></div>';
     }).join("");
 
-    return '<div class="view stagger">' +
-      '<div class="w">' +
+    return '<div class="w">' +
         '<div class="w-head"><span class="ic">' + icon(ICONS.Training, "var(--move)") + "</span>" +
         '<span class="t" style="color:var(--move)">' + esc(prog.title) + "</span>" +
         '<span class="r">' + done + " / " + total + "</span></div>" +
         '<div style="height:6px;background:rgba(255,255,255,.1);border-radius:999px;overflow:hidden">' +
-        '<i style="display:block;height:100%;width:' + pct + '%;background:linear-gradient(90deg,var(--move),#ff6b8a);transition:width .9s var(--ease)"></i></div>' +
+        '<i data-w="' + pct + '" style="display:block;height:100%;width:0;background:linear-gradient(90deg,var(--move),#ff6b8a);transition:width .9s var(--ease)"></i></div>' +
         (prog.note ? '<p class="empty" style="margin-top:12px">' + esc(prog.note) + "</p>" : "") +
         '<div class="list" style="margin-top:12px">' + rows + "</div></div>" +
       '<div class="w"><div class="w-head"><span class="ic">' + icon(ICONS.Groei, "var(--mind)") +
         '</span><span class="t" style="color:var(--mind)">Progressie</span></div>' +
         '<p class="empty">Rust 2 tot 3 minuten op compounds, 60 tot 90 seconden op de rest. ' +
-        "Ga 2,5 tot 5 kg omhoog zodra alle sets schoon zijn. Houd 1 tot 2 reps in reserve.</p></div>" +
-    "</div>";
+        "Ga 2,5 tot 5 kg omhoog zodra alle sets schoon zijn. Houd 1 tot 2 reps in reserve.</p></div>";
   }
 
   /* ---------- tab: stats ---------- */
@@ -1087,7 +1111,7 @@
       var rows = sorted.map(function (r) {
         var p = Math.round(r.pct * 100);
         return '<div class="bar-row"><span class="n">' + esc(r.label) + "</span>" +
-          '<span class="b"><i style="width:' + p + "%;background:" + (p < 70 ? "var(--fail)" : GROUP_COLOR[r.group]) + '"></i></span>' +
+          '<span class="b"><i data-w="' + p + '" style="width:0;background:' + (p < 70 ? "var(--fail)" : GROUP_COLOR[r.group]) + '"></i></span>' +
           '<span class="p">' + p + "%</span></div>";
       }).join("");
       var weak = sorted[0];
@@ -1165,7 +1189,7 @@
       '<input type="number" inputmode="decimal" step="0.1" min="30" max="250" id="w-in" placeholder="kg" value="' + cur + '" aria-label="Gewicht">' +
       '<button class="btn" style="width:auto;padding:0 22px;margin:0" data-act="save-weight">Log</button></div></div>';
 
-    return '<div class="view stagger">' + tiles + board + trend + rates + records + weight + "</div>";
+    return tiles + board + trend + rates + records + weight;
   }
 
   /* ---------- tab: info ---------- */
@@ -1182,8 +1206,7 @@
         "</h3><p>" + body + "</p></div>";
     }).join("");
 
-    return '<div class="view stagger">' +
-      '<div class="w"><div class="w-head"><span class="ic">' + icon(ICONS.Groei, "var(--mind)") +
+    return '<div class="w"><div class="w-head"><span class="ic">' + icon(ICONS.Groei, "var(--mind)") +
         '</span><span class="t">De regels</span></div>' + rules +
         '<div class="callout good" style="margin-top:14px">Consistentie is belangrijker dan motivatie. Een dag half doen telt niet als perfect, maar is beter dan overslaan.</div></div>' +
       '<div class="w"><div class="w-head"><span class="ic">' + icon(ICONS.Training, "var(--move)") +
@@ -1198,8 +1221,7 @@
       '<div class="w"><div class="w-head"><span class="ic">' + icon(ICONS.Herstel, "var(--rest)") +
         '</span><span class="t">Je data</span></div>' +
         '<p class="empty">Alles staat lokaal op dit apparaat, er gaat niets naar een server. Maak af en toe een back-up via de instellingen, ' +
-        "want een gewiste cache of een nieuwe telefoon betekent anders 75 dagen kwijt.</p></div>" +
-    "</div>";
+        "want een gewiste cache of een nieuwe telefoon betekent anders 75 dagen kwijt.</p></div>";
   }
 
   /* ---------- render ---------- */
@@ -1222,31 +1244,49 @@
         if (tab === b.dataset.tab) return;
         tab = b.dataset.tab;
         sfx.tab();
-        render();
+        render(true);
         scrollTo({ top: 0 });
       });
     });
   }
 
-  function render() {
+  function render(animate) {
     var s = stats();
+    var body, scrollKeep = scrollY;
+
     if (tab === "today") {
       titleEl.textContent = key(viewDate) === key(new Date()) ? "Vandaag" : "Dag " + dayIndex(viewDate);
       subEl.textContent = longLabel(viewDate);
-      view.innerHTML = viewToday();
+      body = viewToday();
     } else if (tab === "training") {
       titleEl.textContent = "Training";
       subEl.textContent = PROGRAM[viewDate.getDay()].title;
-      view.innerHTML = viewTraining();
+      body = viewTraining();
     } else if (tab === "stats") {
       titleEl.textContent = "Stats";
       subEl.textContent = s.notStarted ? "nog niet begonnen" : "dag " + Math.min(TOTAL_DAYS, s.idx) + " van 75";
-      view.innerHTML = viewStats();
+      body = viewStats();
     } else {
       titleEl.textContent = "Info";
       subEl.textContent = "regels en programma";
-      view.innerHTML = viewInfo();
+      body = viewInfo();
     }
+
+    view.innerHTML = '<div class="view' + (animate ? " animate" : "") + '">' + body + "</div>";
+
+    // Ringen en balken staan op hun startwaarde. Een frame later zetten we ze op het doel,
+    // zodat de CSS transitie loopt in plaats van dat de waarde springt.
+    requestAnimationFrame(function () {
+      view.querySelectorAll("[data-target]").forEach(function (c) {
+        c.setAttribute("stroke-dashoffset", c.dataset.target);
+      });
+      view.querySelectorAll("[data-w]").forEach(function (b) {
+        b.style.width = b.dataset.w + "%";
+      });
+    });
+
+    if (!animate) scrollTo(0, scrollKeep);
+
     renderTabs();
     restTimer.paint();
     bind();
@@ -1300,7 +1340,7 @@
         rec.habits.log = true;
         afterToggle();
         save();
-        render();
+        render(false);
       });
     });
 
@@ -1311,7 +1351,7 @@
         if (state.weeks[wk][id]) { delete state.weeks[wk][id]; sfx.untick(); }
         else { state.weeks[wk][id] = true; sfx.tick(); }
         save();
-        render();
+        render(false);
       });
     });
 
@@ -1337,7 +1377,7 @@
         restTimer.suggest(id);
         afterToggle();
         save();
-        render();
+        render(false);
       });
     });
 
@@ -1365,7 +1405,7 @@
         viewDate = n;
         lastRings = null;
         sfx.tab();
-        render();
+        render(true);
       });
     });
 
@@ -1377,7 +1417,7 @@
         tab = "today";
         lastRings = null;
         sfx.tab();
-        render();
+        render(true);
         scrollTo({ top: 0 });
       });
     });
@@ -1390,7 +1430,7 @@
       else { rec.weight = Math.round(v * 10) / 10; sfx.tick(); toast("Gewicht gelogd"); }
       rec.habits.log = true;
       save();
-      render();
+      render(false);
     });
 
     var rings = document.getElementById("rings");
@@ -1399,26 +1439,34 @@
 
   function tilt(el) {
     var rect = null;
+
     function move(e) {
       var t = e.touches ? e.touches[0] : e;
       if (!rect) rect = el.getBoundingClientRect();
       var px = (t.clientX - rect.left) / rect.width;
       var py = (t.clientY - rect.top) / rect.height;
+      el.classList.add("grabbed");
       el.style.transition = "none";
-      el.style.transform = "rotateY(" + ((px - 0.5) * 14).toFixed(2) + "deg) rotateX(" + ((0.5 - py) * 10).toFixed(2) + "deg)";
+      el.style.transform =
+        "rotateY(" + ((px - 0.5) * 22).toFixed(2) + "deg) rotateX(" + ((0.5 - py) * 16).toFixed(2) + "deg) scale(1.02)";
       el.style.setProperty("--gx", (px * 100).toFixed(0) + "%");
       el.style.setProperty("--gy", (py * 100).toFixed(0) + "%");
     }
+
     function end() {
       rect = null;
+      el.classList.remove("grabbed");
       el.style.transition = "";
       el.style.transform = "";
       el.style.setProperty("--gx", "60%");
       el.style.setProperty("--gy", "20%");
     }
-    el.addEventListener("touchstart", move, { passive: true });
-    el.addEventListener("touchmove", move, { passive: true });
+
+    // niet passive: we willen preventDefault zodat de pagina niet meescrollt tijdens het kantelen
+    el.addEventListener("touchstart", function (e) { move(e); }, { passive: true });
+    el.addEventListener("touchmove", function (e) { e.preventDefault(); move(e); }, { passive: false });
     el.addEventListener("touchend", end);
+    el.addEventListener("touchcancel", end);
     el.addEventListener("mousemove", move);
     el.addEventListener("mouseleave", end);
   }
@@ -1452,7 +1500,7 @@
       closeSheet();
       sfx.unlock(); sfx.done();
       save();
-      render();
+      render(true);
     });
   }
 
@@ -1482,7 +1530,7 @@
       var w = parseFloat(document.getElementById("c-weight").value.replace(",", "."));
       if (d) state.config.startDate = d;
       state.config.bodyweight = isNaN(w) ? null : w;
-      closeSheet(); save(); render();
+      closeSheet(); save(); render(true);
       toast("Opgeslagen");
     });
     document.getElementById("exp").addEventListener("click", exportBackup);
@@ -1503,7 +1551,7 @@
           if (!state.meta) state.meta = {};
           viewDate = new Date();
           lastRings = null;
-          closeSheet(); save(); render();
+          closeSheet(); save(); render(true);
           toast("Back-up geladen");
         } catch (e) { toast("Bestand niet leesbaar"); }
       };
@@ -1521,7 +1569,7 @@
       viewDate = new Date();
       tab = "today";
       lastRings = null;
-      closeSheet(); save(); render();
+      closeSheet(); save(); render(true);
       openSetup();
     });
   }
@@ -1565,7 +1613,7 @@
   addEventListener("touchstart", function once() { sfx.unlock(); removeEventListener("touchstart", once); }, { passive: true });
   addEventListener("click", function once() { sfx.unlock(); removeEventListener("click", once); });
 
-  document.addEventListener("visibilitychange", function () { if (!document.hidden) render(); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) render(false); });
 
   var stored = load();
   if (stored && stored.config && stored.config.startDate) {
@@ -1573,12 +1621,12 @@
     if (!state.days) state.days = {};
     if (!state.weeks) state.weeks = {};
     if (!state.meta) state.meta = {};
-    render();
+    render(true);
     lastRings = ringData(viewDate).map(function (r) { return r.pct; });
     backupNudge();
   } else {
     state = defaultState();
-    render();
+    render(true);
   }
 
   var splash = document.getElementById("splash");
