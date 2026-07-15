@@ -233,6 +233,18 @@
   .row.locked { cursor: default; }
   .row.locked:active { transform: none; background: none; }
 
+  .row.counter { cursor: default; }
+  .row.counter:active { transform: none; background: none; }
+  .stepper { flex: 0 0 auto; display: flex; gap: 6px; }
+  .stepper .st {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--fill-2); border: 0; color: var(--ink);
+    font-size: 20px; font-weight: 600; line-height: 1;
+    display: grid; place-items: center; cursor: pointer;
+    transition: transform 0.25s var(--spring);
+  }
+  .stepper .st:active { transform: scale(0.82); }
+
   /* board */
   .board-wrap { perspective: 620px; }
   .board {
@@ -291,11 +303,13 @@
   .ex-name { font-size: 15px; display: block; }
   .ex.done .ex-name { color: var(--muted); }
   .ex .hint { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .logbox { flex: 0 0 auto; display: flex; gap: 6px; }
   .kg {
-    flex: 0 0 72px; width: 72px; height: 40px;
+    flex: 0 0 auto; width: 60px; height: 40px;
     background: var(--fill-2); border: 0; border-radius: 10px;
     color: var(--ink); font-family: var(--mono); font-size: 16px; text-align: center;
   }
+  .kg.reps { width: 54px; }
   .kg:focus { outline: 2px solid var(--move); }
 
   .rec { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--sep); }
@@ -480,7 +494,8 @@
     Voeding:  '<path d="M12 3s6 5.3 6 9.6A6 6 0 0 1 6 12.6C6 8.3 12 3 12 3z"/>',
     Groei:    '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 5.5v15"/>',
     Herstel:  '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
-    Scale:    '<path d="M12 3a9 9 0 0 1 9 9v9H3v-9a9 9 0 0 1 9-9z"/><path d="M12 7.5v4.5"/>'
+    Scale:    '<path d="M12 3a9 9 0 0 1 9 9v9H3v-9a9 9 0 0 1 9-9z"/><path d="M12 7.5v4.5"/>',
+    Camera:   '<path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h5l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/>'
   };
 
   var GROUP_COLOR = { Training: "var(--move)", Voeding: "var(--eat)", Groei: "var(--mind)", Herstel: "var(--rest)" };
@@ -489,12 +504,12 @@
     { id: "gym",      group: "Training", label: "Gym training",            hint: "6 dagen per week, zondag rust", restExempt: true },
     { id: "walk",     group: "Training", label: "45 tot 60 min wandelen" },
     { id: "mobility", group: "Training", label: "Mobiliteit of stretchen", hint: "10 minuten" },
-    { id: "water",    group: "Voeding",  label: "3 liter water" },
+    { id: "water",    group: "Voeding",  label: "Water", counter: { target: 3, step: 0.25, unit: "L", label: "3 liter water" } },
     { id: "nosoda",   group: "Voeding",  label: "Geen frisdrank" },
     { id: "nosugar",  group: "Voeding",  label: "Geen toegevoegde suiker of snoep" },
-    { id: "read",     group: "Groei",    label: "10 pagina's lezen",       hint: "Non-fictie of zelfontwikkeling" },
+    { id: "read",     group: "Groei",    label: "Lezen", hint: "Non-fictie of zelfontwikkeling", counter: { target: 10, step: 5, unit: "p", label: "10 pagina's" } },
     { id: "top3",     group: "Groei",    label: "Top 3 taken afgerond" },
-    { id: "sleep",    group: "Herstel",  label: "7,5 tot 9 uur slaap" },
+    { id: "sleep",    group: "Herstel",  label: "Slaap", counter: { target: 7.5, step: 0.5, unit: "u", label: "7,5 tot 9 uur", max: 9 } },
     { id: "nophone",  group: "Herstel",  label: "Geen telefoon voor bed" },
     { id: "bed",      group: "Herstel",  label: "Bed opgemaakt" },
     { id: "log",      group: "Herstel",  label: "Voortgang bijgehouden",   auto: true }
@@ -645,6 +660,76 @@
     catch (e) { toast("Opslaan mislukt, opslag vol"); }
   }
 
+  /* ---------- foto opslag, IndexedDB ---------- */
+  var photoDB = (function () {
+    var dbp = null;
+    function open() {
+      if (dbp) return dbp;
+      dbp = new Promise(function (resolve, reject) {
+        if (!window.indexedDB) { reject(new Error("geen indexedDB")); return; }
+        var req = indexedDB.open("challenge75-photos", 1);
+        req.onupgradeneeded = function () {
+          var db = req.result;
+          if (!db.objectStoreNames.contains("photos")) db.createObjectStore("photos");
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error); };
+      });
+      return dbp;
+    }
+    function tx(mode) { return open().then(function (db) { return db.transaction("photos", mode).objectStore("photos"); }); }
+    return {
+      put: function (k, blob) {
+        return tx("readwrite").then(function (store) {
+          return new Promise(function (res, rej) {
+            var r = store.put(blob, k); r.onsuccess = res; r.onerror = function () { rej(r.error); };
+          });
+        });
+      },
+      get: function (k) {
+        return tx("readonly").then(function (store) {
+          return new Promise(function (res, rej) {
+            var r = store.get(k); r.onsuccess = function () { res(r.result || null); }; r.onerror = function () { rej(r.error); };
+          });
+        });
+      },
+      del: function (k) {
+        return tx("readwrite").then(function (store) {
+          return new Promise(function (res, rej) {
+            var r = store.delete(k); r.onsuccess = res; r.onerror = function () { rej(r.error); };
+          });
+        });
+      },
+      keys: function () {
+        return tx("readonly").then(function (store) {
+          return new Promise(function (res, rej) {
+            var r = store.getAllKeys(); r.onsuccess = function () { res(r.result || []); }; r.onerror = function () { rej(r.error); };
+          });
+        });
+      }
+    };
+  })();
+
+  /* Verkleint een foto naar max 1080px breed en comprimeert als jpeg, scheelt enorm in opslag */
+  function shrinkImage(file) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var max = 1080;
+        var scale = Math.min(1, max / Math.max(img.width, img.height));
+        var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        var cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        cv.getContext("2d").drawImage(img, 0, 0, w, h);
+        cv.toBlob(function (blob) { blob ? resolve(blob) : reject(new Error("blob faalt")); }, "image/jpeg", 0.82);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("kan afbeelding niet laden")); };
+      img.src = url;
+    });
+  }
+
   /* ---------- datum ---------- */
   function key(d) {
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -669,25 +754,38 @@
     return { config: { startDate: key(new Date()), bodyweight: null }, days: {}, weeks: {}, meta: { sound: true } };
   }
   function dayRecord(k) {
-    if (!state.days[k]) state.days[k] = { habits: {}, workout: {} };
+    if (!state.days[k]) state.days[k] = { habits: {}, workout: {}, counts: {} };
     if (!state.days[k].habits) state.days[k].habits = {};
     if (!state.days[k].workout) state.days[k].workout = {};
+    if (!state.days[k].counts) state.days[k].counts = {};
     return state.days[k];
   }
   function requiredHabits(d) {
     return HABITS.filter(function (h) { return !(h.restExempt && isSunday(d)); });
   }
-  function completionFor(d) {
+
+  /* Tellerwaarde voor een habit op een dag, uit rec.counts */
+  function counterValue(d, id) {
     var rec = state.days[key(d)];
+    return rec && rec.counts && typeof rec.counts[id] === "number" ? rec.counts[id] : 0;
+  }
+  /* Een habit is 'gehaald' als het vinkje aan staat OF de teller het doel raakt */
+  function habitDone(d, h) {
+    var rec = state.days[key(d)];
+    if (!rec) return false;
+    if (h.counter) return counterValue(d, h.id) >= h.counter.target || !!rec.habits[h.id];
+    return !!rec.habits[h.id];
+  }
+  function completionFor(d) {
     var req = requiredHabits(d);
-    var done = rec ? req.filter(function (h) { return rec.habits[h.id]; }).length : 0;
+    var done = req.filter(function (h) { return habitDone(d, h); }).length;
     return { done: done, total: req.length, pct: req.length ? done / req.length : 0 };
   }
   function ringData(d) {
     var rec = state.days[key(d)];
     return RINGS.map(function (r) {
       var items = requiredHabits(d).filter(function (h) { return r.groups.indexOf(h.group) >= 0; });
-      var done = rec ? items.filter(function (h) { return rec.habits[h.id]; }).length : 0;
+      var done = items.filter(function (h) { return habitDone(d, h); }).length;
       return { id: r.id, name: r.name, done: done, total: items.length, pct: items.length ? done / items.length : 0 };
     });
   }
@@ -723,8 +821,7 @@
         day = addDays(startDate(), j - 1);
         if (h.restExempt && isSunday(day)) continue;
         total++;
-        rec = state.days[key(day)];
-        if (rec && rec.habits[h.id]) done++;
+        if (habitDone(day, h)) done++;
       }
       return { label: h.label, group: h.group, pct: total ? done / total : 0 };
     });
@@ -751,7 +848,65 @@
     return { gym: gym, walks: walks };
   }
 
+  /* Totaal tonnage (kg * reps) van alle logs in de week rond een datum */
+  function weekVolume(d) {
+    var dow = d.getDay() === 0 ? 7 : d.getDay();
+    var monday = addDays(d, -(dow - 1));
+    var vol = 0, sets = 0;
+    for (var i = 0; i < 7; i++) {
+      var rec = state.days[key(addDays(monday, i))];
+      if (!rec || !rec.workout) continue;
+      Object.keys(rec.workout).forEach(function (id) {
+        var s = rec.workout[id];
+        if (typeof s.kg === "number" && typeof s.reps === "number") { vol += s.kg * s.reps; sets++; }
+      });
+    }
+    return { vol: vol, sets: sets, monday: monday };
+  }
+
+  /* Gemiddelde slaap in de week rond een datum, uit de teller */
+  function weekSleep(d) {
+    var dow = d.getDay() === 0 ? 7 : d.getDay();
+    var monday = addDays(d, -(dow - 1));
+    var sum = 0, n = 0;
+    for (var i = 0; i < 7; i++) {
+      var rec = state.days[key(addDays(monday, i))];
+      var v = rec && rec.counts && rec.counts.sleep;
+      if (typeof v === "number" && v > 0) { sum += v; n++; }
+    }
+    return n ? sum / n : null;
+  }
+
   function workoutFor(d) { var r = state.days[key(d)]; return (r && r.workout) || {}; }
+
+  /* Geschatte 1RM volgens Epley: kg * (1 + reps/30). Bij 1 rep gewoon het gewicht. */
+  function e1rm(kg, reps) {
+    if (!kg || !reps) return kg || 0;
+    if (reps === 1) return kg;
+    return kg * (1 + reps / 30);
+  }
+  /* Beste e1RM ooit voor een oefening, plus datum */
+  function bestE1rm(exId) {
+    var best = 0, when = null;
+    Object.keys(state.days).forEach(function (k) {
+      var w = state.days[k].workout;
+      var s = w && w[exId];
+      if (s && typeof s.kg === "number" && typeof s.reps === "number") {
+        var v = e1rm(s.kg, s.reps);
+        if (v > best) { best = v; when = k; }
+      }
+    });
+    return best ? { v: best, date: when } : null;
+  }
+  /* Vorige sessie: laatste dag voor beforeKey met kg gelogd */
+  function lastSession(exId, beforeKey) {
+    var keys = Object.keys(state.days).filter(function (k) { return k < beforeKey; }).sort().reverse();
+    for (var i = 0; i < keys.length; i++) {
+      var w = state.days[keys[i]].workout;
+      if (w && w[exId] && typeof w[exId].kg === "number") return w[exId];
+    }
+    return null;
+  }
 
   function lastWeight(exId, beforeKey) {
     var keys = Object.keys(state.days).filter(function (k) { return k < beforeKey; }).sort().reverse();
@@ -946,6 +1101,52 @@
       '<span class="tag">' + value + " / " + target + "</span></div>";
   }
 
+  /* Zelfvullend weekrapport: telt en vergelijkt met de vorige week */
+  function weekReport() {
+    var thisWk = weekVolume(viewDate);
+    var lastWk = weekVolume(addDays(thisWk.monday, -1));
+    var sleep = weekSleep(viewDate);
+    var wc = weekCounts(viewDate);
+
+    var volDelta = "";
+    if (thisWk.vol > 0 && lastWk.vol > 0) {
+      var pct = Math.round(((thisWk.vol - lastWk.vol) / lastWk.vol) * 100);
+      volDelta = (pct >= 0 ? "+" : "") + pct + "% vs vorige week";
+    } else if (thisWk.vol > 0) {
+      volDelta = "eerste week met volume";
+    }
+
+    // gewicht delta binnen de week
+    var wStart = null, wEnd = null;
+    for (var i = 0; i < 7; i++) {
+      var rec = state.days[key(addDays(thisWk.monday, i))];
+      if (rec && typeof rec.weight === "number") {
+        if (wStart === null) wStart = rec.weight;
+        wEnd = rec.weight;
+      }
+    }
+    var wDelta = (wStart !== null && wEnd !== null && wStart !== wEnd)
+      ? ((wEnd - wStart >= 0 ? "+" : "") + nl(wEnd - wStart) + " kg")
+      : (wEnd !== null ? nl(wEnd) + " kg" : "niet gewogen");
+
+    function line(label, value, color) {
+      return '<div class="bar-row" style="border-top:1px solid var(--sep)">' +
+        '<span class="n">' + esc(label) + "</span>" +
+        '<span class="pr" style="font-size:15px;color:' + (color || "var(--ink)") + '">' + esc(value) + "</span></div>";
+    }
+
+    var rows =
+      line("Gym", wc.gym + " / 6", wc.gym >= 6 ? "var(--eat)" : "var(--fail)") +
+      line("Wandelingen", wc.walks + " / 7", wc.walks >= 7 ? "var(--eat)" : "var(--fail)") +
+      line("Volume", thisWk.sets ? Math.round(thisWk.vol).toLocaleString("nl-NL") + " kg" : "niets gelogd", "var(--move)") +
+      (volDelta ? line("Trend", volDelta, thisWk.vol >= lastWk.vol ? "var(--eat)" : "var(--orange)") : "") +
+      line("Slaap gem.", sleep !== null ? nl(sleep) + " u" : "niet gelogd", sleep !== null && sleep >= 7.5 ? "var(--eat)" : "var(--orange)") +
+      line("Gewicht", wDelta, "var(--orange)");
+
+    return '<div class="w"><div class="w-head"><span class="ic">' + icon(ICONS.Groei, "var(--mind)") +
+      '</span><span class="t">Weekrapport</span></div>' + rows + "</div>";
+  }
+
   function viewToday() {
     var s = stats();
     var c = completionFor(viewDate);
@@ -972,12 +1173,27 @@
     var groups = GROUPS.map(function (g) {
       var items = HABITS.filter(function (h) { return h.group === g; });
       var color = GROUP_COLOR[g];
-      var rec = state.days[key(viewDate)];
-      var done = items.filter(function (h) { return rec && rec.habits[h.id]; }).length;
+      var done = items.filter(function (h) { return habitDone(viewDate, h); }).length;
 
       var rows = items.map(function (h) {
         var na = h.restExempt && isSunday(viewDate);
-        var on = !!(rec && rec.habits[h.id]);
+        var on = habitDone(viewDate, h);
+
+        if (h.counter && !na) {
+          var val = counterValue(viewDate, h.id);
+          var c = h.counter;
+          var hit = val >= c.target;
+          var shown = (c.step % 1 === 0 && c.target % 1 === 0) ? String(val) : nl(val);
+          return '<div class="row counter' + (hit ? " hit" : "") + '" data-counter="' + h.id + '">' +
+            '<span class="box" style="' + (hit ? "background:" + color : "") + '">' + CHECK + "</span>" +
+            '<span class="txt"><span>' + esc(h.label) + "</span>" +
+              '<span class="hint">' + esc(shown) + " / " + nl(c.target).replace(",0", "") + " " + esc(c.unit) + "</span></span>" +
+            '<span class="stepper">' +
+              '<button class="st" data-step="' + h.id + '" data-dir="-1" aria-label="minder">&minus;</button>' +
+              '<button class="st" data-step="' + h.id + '" data-dir="1" style="color:' + color + '" aria-label="meer">+</button>' +
+            "</span></div>";
+        }
+
         return '<button class="row' + (na || h.auto ? " locked" : "") + '" data-habit="' + h.id + '" aria-pressed="' + (na ? "false" : on) + '"' + (na ? " disabled" : "") + ">" +
           '<span class="box" style="' + (on && !na ? "background:" + color : "") + '">' + CHECK + "</span>" +
           '<span class="txt"><span>' + esc(h.label) + "</span>" +
@@ -1005,7 +1221,8 @@
       weekly = '<div class="w">' +
         '<div class="w-head"><span class="ic">' + icon(ICONS.Herstel, "var(--rest)") +
         '</span><span class="t" style="color:var(--rest)">Zondagreview</span></div>' +
-        '<div class="list">' + autoRow("Gym sessies", wc.gym, 6) + autoRow("Wandelingen", wc.walks, 7) + manual + "</div></div>";
+        '<div class="list">' + autoRow("Gym sessies", wc.gym, 6) + autoRow("Wandelingen", wc.walks, 7) + manual + "</div></div>" +
+        weekReport();
     }
 
     return ringsWidget() + tiles + nav + groups + weekly;
@@ -1033,14 +1250,25 @@
     var rows = prog.exercises.map(function (e) {
       var entry = w[e.id] || {};
       var on = !!entry.done;
-      var prev = lastWeight(e.id, vKey);
+      var prev = lastSession(e.id, vKey);
+      var hint = esc(e.scheme);
+      if (prev && typeof prev.kg === "number") {
+        hint += " &middot; vorige keer " + nl(prev.kg) + " kg";
+        if (typeof prev.reps === "number") hint += " x " + prev.reps;
+      } else {
+        hint += " &middot; nog niet gelogd";
+      }
       return '<div class="ex' + (on ? " done" : "") + '">' +
         '<button class="ex-check" data-ex="' + e.id + '" aria-pressed="' + on + '" aria-label="' + esc(e.name) + '">' +
         '<span class="box">' + CHECK + "</span></button>" +
         '<div class="ex-body"><span class="ex-name">' + esc(e.name) + "</span>" +
-        '<span class="hint">' + esc(e.scheme) + (prev !== null ? " &middot; vorige keer " + nl(prev) + " kg" : " &middot; nog geen gewicht") + "</span></div>" +
-        '<input class="kg" type="number" inputmode="decimal" step="0.5" min="0" max="500" placeholder="kg" value="' +
-        (typeof entry.kg === "number" ? entry.kg : "") + '" data-kg="' + e.id + '" aria-label="Gewicht"></div>';
+        '<span class="hint">' + hint + "</span></div>" +
+        '<div class="logbox">' +
+          '<input class="kg" type="number" inputmode="decimal" step="0.5" min="0" max="500" placeholder="kg" value="' +
+          (typeof entry.kg === "number" ? entry.kg : "") + '" data-kg="' + e.id + '" aria-label="Gewicht">' +
+          '<input class="kg reps" type="number" inputmode="numeric" step="1" min="0" max="100" placeholder="reps" value="' +
+          (typeof entry.reps === "number" ? entry.reps : "") + '" data-reps="' + e.id + '" aria-label="Reps">' +
+        "</div></div>";
     }).join("");
 
     return '<div class="w">' +
@@ -1132,7 +1360,12 @@
         if (log[q].kg >= pr) pr = log[q].kg;
       }
       var since = diffDays(parseKey(lastInc), new Date());
-      recRows.push({ name: e.name, pr: pr, last: log[log.length - 1].kg, since: since, stale: log.length >= 2 && since >= 21 });
+      var e1 = bestE1rm(e.id);
+      recRows.push({
+        name: e.name, pr: pr, last: log[log.length - 1].kg,
+        since: since, stale: log.length >= 2 && since >= 21,
+        e1rm: e1 ? e1.v : null
+      });
     });
 
     var records;
@@ -1142,10 +1375,12 @@
     } else {
       recRows.sort(function (a, b) { return (a.stale === b.stale) ? b.since - a.since : (a.stale ? -1 : 1); });
       var rHtml = recRows.map(function (r) {
+        var big = r.e1rm ? nl(r.e1rm, r.e1rm >= 100 ? 0 : 1) : nl(r.pr);
+        var unit = r.e1rm ? " e1RM" : " kg";
         return '<div class="rec' + (r.stale ? " stale" : "") + '"><span class="n">' + esc(r.name) +
           '<span class="hint">laatst ' + nl(r.last) + " kg &middot; " +
           (r.since === 0 ? "vandaag omhoog" : r.since + " dagen zonder verhoging") + "</span></span>" +
-          '<span class="pr">' + nl(r.pr) + "<small> kg</small></span></div>";
+          '<span class="pr">' + big + "<small>" + unit + "</small></span></div>";
       }).join("");
       var stalled = recRows.filter(function (r) { return r.stale; });
       records = '<div class="w"><div class="w-head"><span class="ic">' + icon(ICONS.Training, "var(--move)") +
@@ -1189,7 +1424,15 @@
       '<input type="number" inputmode="decimal" step="0.1" min="30" max="250" id="w-in" placeholder="kg" value="' + cur + '" aria-label="Gewicht">' +
       '<button class="btn" style="width:auto;padding:0 22px;margin:0" data-act="save-weight">Log</button></div></div>';
 
-    return tiles + board + trend + rates + records + weight;
+    var photos = '<div class="w"><div class="w-head"><span class="ic">' + icon(ICONS.Camera, "var(--mind)") +
+      '</span><span class="t">Progressiefoto\'s</span><span class="r" id="photo-count"></span></div>' +
+      '<p class="empty" id="photo-empty">Foto\'s laden...</p>' +
+      '<div id="photo-strip" style="display:none"></div>' +
+      '<label class="btn ghost" style="margin-top:12px;display:flex;align-items:center;justify-content:center;cursor:pointer">' +
+        'Foto toevoegen<input type="file" id="photo-in" accept="image/*" hidden></label>' +
+      "</div>";
+
+    return tiles + board + trend + rates + records + weight + photos;
   }
 
   /* ---------- tab: info ---------- */
@@ -1344,6 +1587,30 @@
       });
     });
 
+    view.querySelectorAll("[data-step]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.dataset.step;
+        var dir = parseInt(btn.dataset.dir, 10);
+        var h = HABITS.filter(function (x) { return x.id === id; })[0];
+        if (!h || !h.counter) return;
+        var rec = dayRecord(key(viewDate));
+        var cur = typeof rec.counts[id] === "number" ? rec.counts[id] : 0;
+        var wasHit = cur >= h.counter.target;
+        var cap = h.counter.max || (h.counter.target * 2);
+        var next = Math.max(0, Math.min(cap, Math.round((cur + dir * h.counter.step) * 100) / 100));
+        rec.counts[id] = next;
+        if (next === 0) delete rec.counts[id];
+        rec.habits.log = true;
+        var nowHit = next >= h.counter.target;
+        if (nowHit && !wasHit) sfx.tick();
+        else if (!nowHit && wasHit) sfx.untick();
+        else sfx.tab();
+        afterToggle();
+        save();
+        render(false);
+      });
+    });
+
     view.querySelectorAll("[data-weekly]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var wk = key(viewDate), id = btn.dataset.weekly;
@@ -1398,6 +1665,19 @@
       });
     });
 
+    view.querySelectorAll("[data-reps]").forEach(function (input) {
+      input.addEventListener("change", function () {
+        var id = input.dataset.reps;
+        var rec = dayRecord(key(viewDate));
+        var v = parseInt(input.value, 10);
+        if (!rec.workout[id]) rec.workout[id] = {};
+        if (isNaN(v) || v <= 0) delete rec.workout[id].reps;
+        else rec.workout[id].reps = v;
+        rec.habits.log = true;
+        save();
+      });
+    });
+
     view.querySelectorAll("[data-nav]").forEach(function (b) {
       b.addEventListener("click", function () {
         var n = addDays(viewDate, parseInt(b.dataset.nav, 10));
@@ -1435,6 +1715,84 @@
 
     var rings = document.getElementById("rings");
     if (rings) tilt(rings);
+
+    if (tab === "stats") bindPhotos();
+  }
+
+  function bindPhotos() {
+    var input = document.getElementById("photo-in");
+    var strip = document.getElementById("photo-strip");
+    var emptyEl = document.getElementById("photo-empty");
+    var countEl = document.getElementById("photo-count");
+    if (!input || !strip) return;
+
+    function refresh() {
+      photoDB.keys().then(function (keys) {
+        keys.sort();
+        countEl.textContent = keys.length ? keys.length + " foto's" : "";
+        if (!keys.length) {
+          emptyEl.style.display = "";
+          emptyEl.textContent = "Nog geen foto's. Maak er elke week een, dan zie je op dag 75 het verschil.";
+          strip.style.display = "none";
+          strip.innerHTML = "";
+          return;
+        }
+        emptyEl.style.display = "none";
+        strip.style.display = "grid";
+        strip.style.gridTemplateColumns = "repeat(3, 1fr)";
+        strip.style.gap = "6px";
+        strip.innerHTML = "";
+        keys.forEach(function (k) {
+          photoDB.get(k).then(function (blob) {
+            if (!blob) return;
+            var url = URL.createObjectURL(blob);
+            var cell = document.createElement("div");
+            cell.style.cssText = "position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden";
+            var img = document.createElement("img");
+            img.src = url;
+            img.loading = "lazy";
+            img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block";
+            img.addEventListener("load", function () { URL.revokeObjectURL(url); });
+            var date = document.createElement("span");
+            date.textContent = k.replace(/^photo:/, "").slice(5); // dd deel
+            date.style.cssText = "position:absolute;left:6px;bottom:6px;font:600 10px var(--mono);color:#fff;text-shadow:0 1px 3px #000";
+            var del = document.createElement("button");
+            del.textContent = "\u00d7";
+            del.setAttribute("aria-label", "verwijder foto");
+            del.style.cssText = "position:absolute;top:4px;right:4px;width:24px;height:24px;border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:15px;cursor:pointer";
+            del.addEventListener("click", function () {
+              if (del.dataset.c !== "1") { del.dataset.c = "1"; del.textContent = "?"; setTimeout(function () { del.dataset.c = "0"; del.textContent = "\u00d7"; }, 2500); return; }
+              photoDB.del(k).then(refresh);
+            });
+            cell.appendChild(img); cell.appendChild(date); cell.appendChild(del);
+            strip.appendChild(cell);
+          });
+        });
+      }).catch(function () {
+        emptyEl.textContent = "Foto-opslag niet beschikbaar in deze browser.";
+      });
+    }
+
+    input.addEventListener("change", function () {
+      var f = input.files && input.files[0];
+      if (!f) return;
+      emptyEl.style.display = "";
+      emptyEl.textContent = "Foto verwerken...";
+      shrinkImage(f).then(function (blob) {
+        var k = "photo:" + key(viewDate);
+        return photoDB.put(k, blob);
+      }).then(function () {
+        sfx.done();
+        toast("Foto opgeslagen");
+        input.value = "";
+        refresh();
+      }).catch(function () {
+        toast("Foto opslaan mislukt");
+        emptyEl.textContent = "Opslaan mislukt.";
+      });
+    });
+
+    refresh();
   }
 
   function tilt(el) {
